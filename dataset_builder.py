@@ -57,8 +57,8 @@ class DatasetBuilder(object):
         - binary_target (int)       : if not None, creates datset for binary classification.
         - optional_transform (list) : list of optional transformations. these are applied before normalization.
         """
-        transform = self._get_transform(self.name, input_size, train, normalize, optional_transform)
-        
+        transform = self._get_transform(self.name, self.input_size, self.mean, self.std, train, normalize, optional_transform)
+
         # get dataset
         if self.name == 'svhn':
             dataset = torchvision.datasets.SVHN(root=self.root_path, split='train' if train else 'test', transform=transform, download=True)
@@ -79,11 +79,11 @@ class DatasetBuilder(object):
         return dataset
 
     def _binarize_dataset(self, dataset, targets_name: str, binary_target: int):
-        """
+        """ 
         Args
-        - dataset             : pytorch dataset class
-        - targets_name (str)  : 
-        - binary_target (int) : 
+        - dataset             : pytorch dataset class.
+        - targets_name (str)  : intermediate variable to compensate inconsistent torchvision API.
+        - binary_target (int) : true class label of binary classification.
         """
         targets = getattr(dataset, targets_name)
         assert 0 <= binary_target <= max(targets)
@@ -93,71 +93,67 @@ class DatasetBuilder(object):
 
         return dataset
 
-    # def _get_transform(self, name:str, input_size:int, train:bool, normalize:bool, optional_transform=[]):
-    #     """
-    #     input_size
-    #     - cifar10, svhn: 32x32
-    #     - imagenet100, imagenet: 224x224  
-    #     """
-    #     transform = []
+    def _get_transform(self, name: str, input_size: int, mean: tuple, std: tuple, train: bool, normalize: bool, optional_transform=[]):
+        """
+        Args
+        - name (str)                : name of dataset.
+        - input_size (int)          : input image size.
+        - mean (tuple)              : mean of normalized pixel value of channels
+        - std (tuple)               : standard deviation of normalized pixel value of channels
+        - train (bool)              : use train set or not.
+        - normalize (bool)          : normalize image or not.
+        - optional_transform (list) : list of optional transformations. these are applied before normalization.
+        """
+        transform = []
 
-    #     # arugmentation
-    #     # imagenet100 / imagenet
-    #     if input_size == 224:
-    #         if train:
-    #             transform.extend([
-    #                 torchvision.transforms.RandomResizedCrop(224),
-    #                 torchvision.transforms.RandomHorizontalFlip(),
-    #             ])
-    #         else:
-    #             transform.extend([
-    #                 torchvision.transforms.Resize(256),
-    #                 torchvision.transforms.CenterCrop(224),
-    #             ])
-    #     # cifar10 / svhn
-    #     elif input_size == 32:
-    #         if train:
-    #             transform.extend([
-    #                 torchvision.transforms.RandomHorizontalFlip(),
-    #                 torchvision.transforms.RandomCrop(32, 4),
-    #             ])
-    #         else:
-    #             pass
-    #     else:
-    #         raise NotImplementedError
+        # arugmentation
+        # imagenet100 / imagenet
+        if input_size == 224:
+            if train:
+                transform.extend([
+                    torchvision.transforms.RandomResizedCrop(224),
+                    torchvision.transforms.RandomHorizontalFlip(),
+                ])
+            else:
+                transform.extend([
+                    torchvision.transforms.Resize(256),
+                    torchvision.transforms.CenterCrop(224),
+                ])
+        # cifar10 / svhn
+        elif input_size == 32:
+            if train:
+                transform.extend([
+                    torchvision.transforms.RandomHorizontalFlip(),
+                    torchvision.transforms.RandomCrop(32, 4),
+                ])
+            else:
+                pass
+        else:
+            raise NotImplementedError
 
-    #     # to tensor
-    #     transform.extend([torchvision.transforms.ToTensor(),])
+        # to tensor
+        transform.extend([torchvision.transforms.ToTensor(), ])
 
-    #     # optional (Fourier Noise, Patch Shuffle, etc.)
-    #     if optional_transform:
-    #         transform.extend(optional_transform)
+        # optional (Fourier Noise, Patch Shuffle, etc.)
+        if optional_transform:
+            transform.extend(optional_transform)
 
-    #     # normalize
-    #     if normalize:
-    #         transform.extend([
-    #             torchvision.transforms.Normalize(mean=self.DATASET_CONFIG[name].mean, std=self.DATASET_CONFIG[name].std),
-    #         ])
+        # normalize
+        if normalize:
+            transform.extend([
+                torchvision.transforms.Normalize(mean=mean, std=std),
+            ])
 
-    #     return torchvision.transforms.Compose(transform)
-    
-    # @property
-    # def input_size(self):
-    #     return self.DATASET_CONFIG[self.name].input_size
-
-    # @property
-    # def num_classes(self):
-    #     return self.DATASET_CONFIG[self.name].num_classes
+        return torchvision.transforms.Compose(transform)
 
 
-@hydra.main(config_path='../conf/config.yaml')
+@hydra.main(config_path='./conf/config.yaml')
 def test(cfg: omegaconf.DictConfig):
-    dataset_builder = DatasetBuilder(root_path='../data', **cfg.dataset)
-    # test_set = dataset_builder(train=False, normalize=True)
+    dataset_builder = DatasetBuilder(root_path=os.path.join(hydra.utils.get_original_cwd(), './data'), **cfg.dataset)
+    test_set = dataset_builder(train=False, normalize=True)
     # print(test_set.targets)
 
-    # dataset_builder = DatasetBuilder(name='cifar10', root_path='../data')
-    # test_set = dataset_builder(train=False, normalize=True, binary_classification_target=7)
+    train_set = dataset_builder(train=True, normalize=True, binary_target=7)
     # print(test_set.targets)
 
 
