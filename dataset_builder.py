@@ -18,7 +18,7 @@ class DatasetBuilder(object):
         - std (tuple)      : standard deviation of normalized pixel value of channels
         - root_path (str)  : root path to dataset
         """
-        required_keys = set('name num_class input_size mean std root_path'.split())
+        required_keys = set('name input_size mean std root_path'.split())
         parsed_args = self._parse_args(required_keys, kwargs)
 
         for k, v in parsed_args.items():
@@ -28,7 +28,6 @@ class DatasetBuilder(object):
         self.root_path = os.path.join(self.root_path, self.name)
 
         assert self.name in self.SUPPORTED_DATASET, 'name of dataset is invalid.'
-        assert self.num_class > 0, 'num_class should be larger than 0.'
         assert self.input_size > 0, 'input_size should be larger than 0.'
         assert len(self.mean) == len(self.std), 'length of mean and std should be same.'
 
@@ -79,7 +78,7 @@ class DatasetBuilder(object):
         return dataset
 
     def _binarize_dataset(self, dataset, targets_name: str, binary_target: int):
-        """ 
+        """
         Args
         - dataset             : pytorch dataset class.
         - targets_name (str)  : intermediate variable to compensate inconsistent torchvision API.
