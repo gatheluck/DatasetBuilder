@@ -7,7 +7,9 @@ import torchvision
 
 
 class DatasetBuilder(object):
-    SUPPORTED_DATASET = set('svhn cifar10 imagenet100 imagenet'.split())
+    # fbdb (FourierBasisDB) is original formula driven dataset generated from Fourier Basis.
+    # about fbdb, please check https://github.com/gatheluck/FourierBasisDB.
+    SUPPORTED_DATASET = set('svhn cifar10 imagenet100 imagenet fbdb'.split())
 
     def __init__(self, **kwargs):
         """
@@ -65,7 +67,7 @@ class DatasetBuilder(object):
         elif self.name == 'cifar10':
             dataset = torchvision.datasets.CIFAR10(root=self.root_path, train=train, transform=transform, download=True)
             targets_name = 'targets'
-        elif self.name in 'imagenet100 imagenet'.split():
+        elif self.name in 'imagenet100 imagenet fbdb'.split():
             root = os.path.join(self.root_path, 'train' if train else 'val')
             dataset = torchvision.datasets.ImageFolder(root, transform=transform)
         else:
@@ -106,7 +108,7 @@ class DatasetBuilder(object):
         transform = []
 
         # arugmentation
-        # imagenet100 / imagenet
+        # imagenet100 / imagenet / fbdb
         if input_size == 224:
             if train:
                 transform.extend([
@@ -118,7 +120,7 @@ class DatasetBuilder(object):
                     torchvision.transforms.Resize(256),
                     torchvision.transforms.CenterCrop(224),
                 ])
-        # cifar10 / svhn
+        # cifar10 / svhn / fbdb
         elif input_size == 32:
             if train:
                 transform.extend([
