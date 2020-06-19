@@ -29,7 +29,7 @@ class DatasetBuilder(object):
 
         self.root_path = os.path.join(self.root_path, self.name)
 
-        assert self.name in self.SUPPORTED_DATASET, 'name of dataset is invalid.'
+        assert (self.name in self.SUPPORTED_DATASET) or ('fbdb' in self.name), 'name of dataset is invalid.'
         assert self.input_size > 0, 'input_size should be larger than 0.'
         assert len(self.mean) == len(self.std), 'length of mean and std should be same.'
 
