@@ -67,7 +67,7 @@ class DatasetBuilder(object):
         elif self.name == 'cifar10':
             dataset = torchvision.datasets.CIFAR10(root=self.root_path, train=train, transform=transform, download=True)
             targets_name = 'targets'
-        elif self.name in 'imagenet100 imagenet fbdb'.split():
+        elif (self.name in 'imagenet100 imagenet'.split()) or ('fbdb' in self.name):
             root = os.path.join(self.root_path, 'train' if train else 'val')
             dataset = torchvision.datasets.ImageFolder(root, transform=transform)
         else:
