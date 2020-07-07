@@ -1,15 +1,21 @@
 import os
 import sys
+
+base = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(base)
+
 import hydra
 import omegaconf
 import torch
 import torchvision
 
+from libs.cifar10_c import CIFAR10C
+
 
 class DatasetBuilder(object):
     # fbdb (FourierBasisDB) is original formula driven dataset generated from Fourier Basis.
     # about fbdb, please check https://github.com/gatheluck/FourierBasisDB.
-    SUPPORTED_DATASET = set('svhn cifar10 imagenet100 imagenet fbdb'.split())
+    SUPPORTED_DATASET = set('svhn cifar10 cifar10-c imagenet100 imagenet fbdb'.split())
 
     def __init__(self, **kwargs):
         """
@@ -50,12 +56,13 @@ class DatasetBuilder(object):
 
         return parsed_args
 
-    def __call__(self, train: bool, normalize: bool, binary_target: int = None, optional_transform=[]):
+    def __call__(self, train: bool, normalize: bool, binary_target: int = None, corruption_type: str = None, optional_transform=[], **kwargs):
         """
         Args
         - train (bool)              : use train set or not.
         - normalize (bool)          : do normalize or not.
         - binary_target (int)       : if not None, creates datset for binary classification.
+        - corruption_type (str)     : type of corruption. only avilable for cifar10-c.
         - optional_transform (list) : list of optional transformations. these are applied before normalization.
         """
         transform = self._get_transform(self.name, self.input_size, self.mean, self.std, train, normalize, optional_transform)
@@ -67,6 +74,9 @@ class DatasetBuilder(object):
         elif self.name == 'cifar10':
             dataset = torchvision.datasets.CIFAR10(root=self.root_path, train=train, transform=transform, download=True)
             targets_name = 'targets'
+        elif self.name == 'cifar10-c':
+            assert train is False, 'cifar10-c does not have train set.'
+            dataset = CIFAR10C(root=self.root_path, corruption_type=corruption_type, transform=transform)
         elif (self.name in 'imagenet100 imagenet'.split()) or ('fbdb' in self.name):
             root = os.path.join(self.root_path, 'train' if train else 'val')
             dataset = torchvision.datasets.ImageFolder(root, transform=transform)
@@ -150,9 +160,11 @@ class DatasetBuilder(object):
 
 @hydra.main(config_path='./conf/config.yaml')
 def test(cfg: omegaconf.DictConfig):
+    print(cfg.pretty())
+
     dataset_builder = DatasetBuilder(root_path=os.path.join(hydra.utils.get_original_cwd(), './data'), **cfg.dataset)
-    test_set = dataset_builder(train=False, normalize=True)
-    # print(test_set.targets)
+    test_set = dataset_builder(train=False, normalize=True, **cfg.dataset)
+    print(len(test_set))
 
     train_set = dataset_builder(train=True, normalize=True, binary_target=7)
     # print(test_set.targets)
