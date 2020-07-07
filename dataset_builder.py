@@ -130,7 +130,7 @@ class DatasetBuilder(object):
                     torchvision.transforms.Resize(256),
                     torchvision.transforms.CenterCrop(224),
                 ])
-        # cifar10 / svhn / fbdb
+        # cifar10 / cifar10-c  / svhn / fbdb
         elif input_size == 32:
             if train:
                 transform.extend([
