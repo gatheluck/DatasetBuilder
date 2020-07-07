@@ -15,7 +15,7 @@ from libs.cifar10_c import CIFAR10C
 class DatasetBuilder(object):
     # fbdb (FourierBasisDB) is original formula driven dataset generated from Fourier Basis.
     # about fbdb, please check https://github.com/gatheluck/FourierBasisDB.
-    SUPPORTED_DATASET = set('svhn cifar10 cifar10-c imagenet100 imagenet fbdb'.split())
+    SUPPORTED_DATASET = set('svhn cifar10 cifar10c imagenet100 imagenet fbdb'.split())
 
     def __init__(self, **kwargs):
         """
@@ -62,7 +62,7 @@ class DatasetBuilder(object):
         - train (bool)              : use train set or not.
         - normalize (bool)          : do normalize or not.
         - binary_target (int)       : if not None, creates datset for binary classification.
-        - corruption_type (str)     : type of corruption. only avilable for cifar10-c.
+        - corruption_type (str)     : type of corruption. only avilable for cifar10c.
         - optional_transform (list) : list of optional transformations. these are applied before normalization.
         """
         transform = self._get_transform(self.name, self.input_size, self.mean, self.std, train, normalize, optional_transform)
@@ -74,8 +74,8 @@ class DatasetBuilder(object):
         elif self.name == 'cifar10':
             dataset = torchvision.datasets.CIFAR10(root=self.root_path, train=train, transform=transform, download=True)
             targets_name = 'targets'
-        elif self.name == 'cifar10-c':
-            assert train is False, 'cifar10-c does not have train set.'
+        elif self.name == 'cifar10c':
+            assert train is False, 'cifar10c does not have train set.'
             dataset = CIFAR10C(root=self.root_path, corruption_type=corruption_type, transform=transform)
         elif (self.name in 'imagenet100 imagenet'.split()) or ('fbdb' in self.name):
             root = os.path.join(self.root_path, 'train' if train else 'val')
@@ -130,7 +130,7 @@ class DatasetBuilder(object):
                     torchvision.transforms.Resize(256),
                     torchvision.transforms.CenterCrop(224),
                 ])
-        # cifar10 / cifar10-c  / svhn / fbdb
+        # cifar10 / cifar10c  / svhn / fbdb
         elif input_size == 32:
             if train:
                 transform.extend([

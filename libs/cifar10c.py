@@ -44,7 +44,7 @@ if __name__ == '__main__':
     x_list = list()
 
     for corruption_type in set('gaussian_noise shot_noise speckle_noise impulse_noise defocus_blur gaussian_blur motion_blur zoom_blur snow fog brightness contrast elastic_transform pixelate jpeg_compression spatter saturate frost'.split()):
-        dataset = CIFAR10C(root='../data/cifar10-c', corruption_type=corruption_type, transform=transform)
+        dataset = CIFAR10C(root='../data/cifar10c', corruption_type=corruption_type, transform=transform)
         loader = torch.utils.data.DataLoader(dataset, batch_size=4, shuffle=False)
 
         for x, t in loader:
@@ -54,4 +54,4 @@ if __name__ == '__main__':
             break
 
     x_save = torch.cat(x_list, dim=-1)
-    torchvision.utils.save_image(x_save, '../logs/cifar10-c_samples.png')
+    torchvision.utils.save_image(x_save, '../logs/cifar10c_samples.png')
