@@ -13,7 +13,7 @@ from libs.metric import accuracy
 from libs.logger import Logger
 
 
-def evalutate_corruption_accuracy(model, dataset_builder, log_dir: str, corruptions: list, batch_size: int, device: str, **kwargs):
+def evaluate_corruption_accuracy(model, dataset_builder, log_dir: str, corruptions: list, batch_size: int, device: str, **kwargs):
     """
     """
 
