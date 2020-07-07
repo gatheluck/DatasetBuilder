@@ -36,7 +36,7 @@ def evaluate_corruption_accuracy(model, dataset_builder, log_dir: str, corruptio
                     y_predict_std = model(x)
 
                 stdacc1, stdacc5 = accuracy(y_predict_std, y, topk=(1, 5))
-                accuracies.appned(stdacc1.item())
+                accuracies.append(stdacc1.item())
 
             log_dict = collections.OrderedDict()
             log_dict['corruption_type'] = corruption_type
