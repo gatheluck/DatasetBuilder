@@ -9,7 +9,7 @@ import omegaconf
 import torch
 import torchvision
 
-from libs.cifar10_c import CIFAR10C
+from libs.cifar10c import CIFAR10C
 
 
 class DatasetBuilder(object):
