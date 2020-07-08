@@ -44,3 +44,4 @@ def evaluate_corruption_accuracy(model, dataset_builder, log_dir: str, corruptio
             logger.log(log_dict)
 
             pbar.set_postfix(collections.OrderedDict(corruption_type='{}'.format(corruption_type), acc='{}'.format(log_dict['accuracy'])))
+            pbar.update()
