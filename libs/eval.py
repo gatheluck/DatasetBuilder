@@ -7,6 +7,9 @@ sys.path.append(base)
 import tqdm
 import click
 import collections
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
 import torch
 
 from libs.metric import accuracy
@@ -45,3 +48,30 @@ def evaluate_corruption_accuracy(model, dataset_builder, log_dir: str, num_sampl
 
             pbar.set_postfix(collections.OrderedDict(corruption_type='{}'.format(corruption_type), acc='{}'.format(log_dict['accuracy'])))
             pbar.update()
+
+    df = pd.read_csv(log_path)
+    result_dict = dict(zip(df['corruption_type'], df['accuracy']))
+    create_barplot(result_dict, title='corruption acc', savepath=os.path.join(log_dir, 'plot_result.png'))
+
+
+def create_barplot(accs: dict, title: str, savepath: str):
+    y = list(accs.values())
+    x = np.arange(len(y))
+    xticks = list(accs.keys())
+
+    plt.bar(x, y)
+    for i, j in zip(x, y):
+        plt.text(i, j, f'{j:.1f}', ha='center', va='bottom', fontsize=7)
+
+    plt.title(title)
+    plt.ylabel('Accuracy (%)')
+
+    plt.ylim(0, 100)
+
+    plt.xticks(x, xticks, rotation=90)
+    plt.yticks(np.linspace(0, 100, 11))
+
+    plt.subplots_adjust(bottom=0.3)
+    plt.grid(axis='y')
+    plt.savefig(savepath)
+    plt.close()
