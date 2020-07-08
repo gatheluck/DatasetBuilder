@@ -56,11 +56,12 @@ class DatasetBuilder(object):
 
         return parsed_args
 
-    def __call__(self, train: bool, normalize: bool, binary_target: int = None, corruption_type: str = None, optional_transform=[], **kwargs):
+    def __call__(self, train: bool, normalize: bool, num_samples: int = -1, binary_target: int = None, corruption_type: str = None, optional_transform=[], **kwargs):
         """
         Args
         - train (bool)              : use train set or not.
         - normalize (bool)          : do normalize or not.
+        - num_samples (int)         : number of samples. if -1, it means use all samples. 
         - binary_target (int)       : if not None, creates datset for binary classification.
         - corruption_type (str)     : type of corruption. only avilable for cifar10c.
         - optional_transform (list) : list of optional transformations. these are applied before normalization.
@@ -86,6 +87,13 @@ class DatasetBuilder(object):
         # make binary classification dataset
         if binary_target is not None:
             dataset = self._binarize_dataset(dataset, targets_name, binary_target)
+
+        # take subset
+        if num_samples != -1:
+            assert num_samples > 0, 'num_samples should be larger than 0 or -1'
+            num_samples = min(num_samples, len(dataset))
+            indices = [i for i in range(num_samples)]
+            dataset = torch.utils.data.Subset(dataset, indices)
 
         return dataset
 
