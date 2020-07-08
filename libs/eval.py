@@ -13,7 +13,7 @@ from libs.metric import accuracy
 from libs.logger import Logger
 
 
-def evaluate_corruption_accuracy(model, dataset_builder, log_dir: str, corruptions: list, batch_size: int, device: str, **kwargs):
+def evaluate_corruption_accuracy(model, dataset_builder, log_dir: str, num_samples: int, corruptions: list, batch_size: int, device: str, **kwargs):
     """
     """
 
@@ -25,7 +25,7 @@ def evaluate_corruption_accuracy(model, dataset_builder, log_dir: str, corruptio
 
     with tqdm.tqdm(total=len(corruptions), ncols=80) as pbar:
         for i, corruption_type in enumerate(corruptions):
-            dataset = dataset_builder(train=False, normalize=True, corruption_type=corruption_type)
+            dataset = dataset_builder(train=False, normalize=True, num_samples=num_samples, corruption_type=corruption_type)
             loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=batch_size, shuffle=False)
 
             accuracies = list()
