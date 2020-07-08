@@ -51,7 +51,8 @@ def evaluate_corruption_accuracy(model, dataset_builder, log_dir: str, num_sampl
 
     df = pd.read_csv(log_path)
     result_dict = dict(zip(df['corruption_type'], df['accuracy']))
-    create_barplot(result_dict, title='corruption acc', savepath=os.path.join(log_dir, 'plot_result.png'))
+    mean_corruption_acc = sum(result_dict.values()) / float(len(result_dict))
+    create_barplot(result_dict, title='mean corruption acc: {0}'.format(mean_corruption_acc), savepath=os.path.join(log_dir, 'plot_result.png'))
 
 
 def create_barplot(accs: dict, title: str, savepath: str):
