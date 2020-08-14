@@ -1,0 +1,6 @@
+dataset: 
+  name: mono
+  mean: [0.4, 0.5, 0.6]
+  std: [0, 0, 0]
+  num_classes: 10
+  input_size: 32

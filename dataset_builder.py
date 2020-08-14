@@ -10,12 +10,13 @@ import torch
 import torchvision
 
 from libs.cifar10c import CIFAR10C
+from libs.monochrome import Monochrome
 
 
 class DatasetBuilder(object):
     # fbdb (FourierBasisDB) is original formula driven dataset generated from Fourier Basis.
     # about fbdb, please check https://github.com/gatheluck/FourierBasisDB.
-    SUPPORTED_DATASET = set('svhn cifar10 cifar10c imagenet100 imagenet fbdb'.split())
+    SUPPORTED_DATASET = set('svhn cifar10 cifar10c imagenet100 imagenet fbdb mono'.split())
 
     def __init__(self, **kwargs):
         """
@@ -81,6 +82,8 @@ class DatasetBuilder(object):
         elif (self.name in 'imagenet100 imagenet'.split()) or ('fbdb' in self.name):
             root = os.path.join(self.root_path, 'train' if train else 'val')
             dataset = torchvision.datasets.ImageFolder(root, transform=transform)
+        elif self.name == 'mono':
+            dataset = Monochrome(input_size=self.input_size, mean=self.mean, train=train)
         else:
             raise NotImplementedError
 
@@ -176,8 +179,20 @@ def test(cfg: omegaconf.DictConfig):
     print(dataset_builder.mean)
     print(dataset_builder.std)
 
-    test_set = dataset_builder(train=False, normalize=True, **cfg.dataset)
-    print(len(test_set))
+    dataset = dataset_builder(train=False, normalize=True, **cfg.dataset)
+    print(len(dataset))
+
+    loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=8, shuffle=False, num_workers=8)
+    for x, t in loader:
+        print(x)
+        print(x.shape)
+        print(x.dtype)
+
+        print(t)
+        print(t.shape)
+        print(t.dtype)
+
+        break
 
 
 if __name__ == '__main__':
