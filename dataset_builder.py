@@ -31,7 +31,7 @@ class DatasetBuilder(object):
 
         for k, v in parsed_args.items():
             print('{}:{}'.format(k, v))
-            setattr(self, k, v)
+            setattr(self, k, v)  # set required_keys as attribute
 
         self.root_path = os.path.join(self.root_path, self.name)
 
@@ -171,11 +171,13 @@ def test(cfg: omegaconf.DictConfig):
     print(cfg.pretty())
 
     dataset_builder = DatasetBuilder(root_path=os.path.join(hydra.utils.get_original_cwd(), './data'), **cfg.dataset)
+    print(dataset_builder.name)
+    print(dataset_builder.input_size)
+    print(dataset_builder.mean)
+    print(dataset_builder.std)
+
     test_set = dataset_builder(train=False, normalize=True, **cfg.dataset)
     print(len(test_set))
-
-    train_set = dataset_builder(train=True, normalize=True, binary_target=7)
-    # print(test_set.targets)
 
 
 if __name__ == '__main__':
