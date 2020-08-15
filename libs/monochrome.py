@@ -11,7 +11,8 @@ import torchvision
 class Monochrome(torchvision.datasets.VisionDataset):
     def __init__(self,
                  input_size: int = 32,
-                 mean: list = [0, 0, 0],
+                 mean: list = [0.5, 0.5, 0.5],
+                 std: list = [0.2, 0.2, 0.2],
                  train: bool = True,
                  num_train: int = 50000,
                  num_val: int = 5000,
@@ -19,16 +20,14 @@ class Monochrome(torchvision.datasets.VisionDataset):
                  **kwargs):
         self.input_size = input_size
         self.mean = mean
+        self.std = std
         self.train = train
         self.target_label = target_label
         self.num_data = num_train if self.train else num_val
+        self.dist = torch.distributions.normal.Normal(torch.tensor(self.mean), torch.tensor(self.std))
 
     def __getitem__(self, index):
-        x = torch.ones(3, self.input_size, self.input_size, dtype=torch.float32)
-        x[0, :, :] *= self.mean[0]
-        x[1, :, :] *= self.mean[1]
-        x[2, :, :] *= self.mean[2]
-
+        x = self.dist.sample().view(3, 1, 1).repeat(1, self.input_size, self.input_size)
         return x, self.target_label
 
     def __len__(self):
