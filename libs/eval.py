@@ -238,16 +238,96 @@ def create_barplot(accs: dict, title: str, savepath: str):
 
 
 if __name__ == "__main__":
+
+    def _get_model(
+        arch: str, num_classes: int, device: str = "cuda"
+    ) -> torch.nn.Module:
+        if arch == "resnet50":
+            model = torchvision.models.resnet50(num_classes=num_classes)
+        else:
+            raise NotImplementedError
+
+        return model.to(device)
+
+    def _get_transform(input_size: int, dataset_name: str):
+        _means = {
+            "cifar10-c": [0.49139968, 0.48215841, 0.44653091],
+            "cifar100-c": [0.50707516, 0.48654887, 0.44091784],
+            "imagenet-c": [0.485, 0.456, 0.406],
+        }
+        _stds = {
+            "cifar10-c": [0.24703223, 0.24348513, 0.26158784],
+            "cifar100-c": [0.26733429, 0.25643846, 0.27615047],
+            "imagenet-c": [0.229, 0.224, 0.225],
+        }
+
+        mean, std = _means[dataset_name], _stds[dataset_name]
+
+        transform = [
+            torchvision.transforms.Resize(input_size),
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize(mean=mean, std=std),
+        ]
+
+        return torchvision.transforms.Compose(transform)
+
+    _corruptions = "gaussian_noise shot_noise speckle_noise impulse_noise defocus_blur gaussian_blur motion_blur zoom_blur snow fog brightness contrast elastic_transform pixelate jpeg_compression spatter saturate frost".split()
+
+    # parse argument
     import argparse
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-
     parser.add_argument("-a", "--arch", type=str, required=True)
     parser.add_argument("-w", "--weight", type=str, required=True)
     parser.add_argument("-d", "--dataset", type=str, required=True)
-    parser.add_argument("-s", "--image_size", type=int, required=True)
-    parser.add_argument("-n", "--batch_size", type=int, default=256)
-
+    parser.add_argument("-s", "--input_size", type=int, required=True)
+    parser.add_argument("-n", "--num_classes", type=int, required=True)
+    parser.add_argument("-b", "--batch_size", type=int, default=256)
+    parser.add_argument("--dataset_dir", type=str, required=True)
+    parser.add_argument("-l", "--log_dir", type=str, required=True)
     opt = parser.parse_args()
+
+    # create logdir
+    os.makedirs(opt.log_dir, exist_ok=True)
+
+    # get model
+    model = _get_model(opt.arch, opt.num_classes)
+    model.load_state_dict(torch.load(opt.weight))
+
+    # get transform for dataset
+    transform = _get_transform(opt.input_size, opt.dataset)
+
+    if opt.dataset in ["cifar10-c", "cifar100-c"]:
+        if opt.dataset == "cifar10-c":
+            dataset = torchvision.datasets.CIFAR10(
+                "../data/cifar", train=False, transform=transform, download=True
+            )
+        elif opt.dataset == "cifar100-c":
+            dataset = torchvision.datasets.CIFAR100(
+                "../data/cifar", train=False, transform=transform, download=True
+            )
+        else:
+            raise NotImplementedError
+        evaluate_cifar_c(
+            model,
+            dataset,
+            opt.dataset_dir,
+            opt.log_dir,
+            _corruptions,
+            opt.batch_size,
+            "cuda",
+        )
+    elif opt.dataset in ["imagenet-c"]:
+        evaluate_imagenet_c(
+            model,
+            transform,
+            opt.dataset_dir,
+            opt.log_dir,
+            _corruptions,
+            opt.batch_size,
+            "cuda",
+        )
+    else:
+        raise NotImplementedError
