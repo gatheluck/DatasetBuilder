@@ -148,6 +148,72 @@ def evaluate_imagenet_c(
     )
 
 
+def evaluate_cifar_c(
+    model,
+    dataset: str,
+    dataset_dir: str,
+    log_dir: str,
+    corruptions: List[str],
+    batch_size: int,
+    device: str,
+    **kwargs,
+) -> None:
+    """
+    Evaluate corruption accuracy on CIFAR10-C or CIFAR100-C.
+    """
+
+    if (device != "cpu") and (torch.cuda.device_count() > 1):
+        model = torch.nn.DataParallel(model)
+
+    log_path = os.path.join(log_dir, os.path.join("cifar_c_result.csv"))
+    logger = Logger(path=log_path, mode="test")
+
+    with tqdm.tqdm(total=len(corruptions), ncols=80) as pbar:
+        for i, corruption_type in enumerate(corruptions):
+            accuracies = list()
+
+            dataset.data = np.load(dataset_dir + corruption_type + ".npy")
+            dataset.targets = torch.LongTensor(np.load(dataset_dir + "labels.npy"))
+
+            loader = torch.utils.data.DataLoader(
+                dataset,
+                batch_size=batch_size,
+                shuffle=False,
+                num_workers=8,
+                pin_memory=True,
+            )
+
+            for x, y in loader:
+                x, y = x.to(device), y.to(device)
+                with torch.autograd.no_grad():
+                    y_predict_std = model(x)
+
+                stdacc1, stdacc5 = accuracy(y_predict_std, y, topk=(1, 5))
+                accuracies.append(stdacc1.item())
+
+            log_dict = collections.OrderedDict()
+            log_dict["corruption_type"] = corruption_type
+            log_dict["accuracy"] = sum(accuracies) / float(len(accuracies))
+            logger.log(log_dict)
+
+            pbar.set_postfix(
+                collections.OrderedDict(
+                    corruption_type="{}".format(corruption_type),
+                    acc="{}".format(log_dict["accuracy"]),
+                )
+            )
+            pbar.update()
+
+    df = pd.read_csv(log_path)
+    result_dict = dict(zip(df["corruption_type"], df["accuracy"]))
+    mean_corruption_acc = sum(result_dict.values()) / float(len(result_dict))
+    create_barplot(
+        result_dict,
+        title="mean corruption acc: {0:0.1f}".format(mean_corruption_acc),
+        savepath=os.path.join(log_dir, "plot_result.png"),
+    )
+
+
 def create_barplot(accs: dict, title: str, savepath: str):
     y = list(accs.values())
     x = np.arange(len(y))
@@ -169,3 +235,19 @@ def create_barplot(accs: dict, title: str, savepath: str):
     plt.grid(axis="y")
     plt.savefig(savepath)
     plt.close()
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    parser.add_argument("-a", "--arch", type=str, required=True)
+    parser.add_argument("-w", "--weight", type=str, required=True)
+    parser.add_argument("-d", "--dataset", type=str, required=True)
+    parser.add_argument("-s", "--image_size", type=int, required=True)
+    parser.add_argument("-n", "--batch_size", type=int, default=256)
+
+    opt = parser.parse_args()
