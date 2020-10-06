@@ -9,8 +9,6 @@ import pandas
 from datetime import datetime
 from collections import OrderedDict
 
-from libs.utils import get_time_stamp
-
 
 class Logger():
     SUPPERTED_MODES = set('train val test'.split())
@@ -67,6 +65,17 @@ class Logger():
             self.df.to_csv(self.path)
         except ValueError:
             print('self.path is invalid path')
+
+
+def get_time_stamp(mode='long'):
+    if mode == 'long':
+        time_stamp = datetime.now().strftime('%Y/%m/%d %H:%M:%S')
+    elif mode == 'short':
+        time_stamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    else:
+        raise ValueError('mode is invalid value')
+
+    return time_stamp
 
 
 if __name__ == '__main__':
