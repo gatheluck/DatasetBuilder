@@ -214,6 +214,41 @@ def evaluate_cifar_c(
     )
 
 
+def evaluate(
+    model, dataset, log_dir: str, batch_size: int, device: str, **kwargs,
+) -> None:
+    """
+    Evaluate accuracy.
+    """
+
+    if (device != "cpu") and (torch.cuda.device_count() > 1):
+        model = torch.nn.DataParallel(model)
+
+    log_path = os.path.join(log_dir, os.path.join("result.csv"))
+    logger = Logger(path=log_path, mode="test")
+
+    loader = torch.utils.data.DataLoader(
+        dataset, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True,
+    )
+
+    with tqdm.tqdm(total=int(len(dataset) / batch_size), ncols=80) as pbar:
+        accuracies = list()
+        for x, y in loader:
+            x, y = x.to(device), y.to(device)
+            with torch.autograd.no_grad():
+                y_predict_std = model(x)
+
+            stdacc1, stdacc5 = accuracy(y_predict_std, y, topk=(1, 5))
+            accuracies.append(stdacc1.item())
+
+            pbar.set_postfix(collections.OrderedDict(acc="{}".format(stdacc1.item())))
+            pbar.update()
+
+        log_dict = collections.OrderedDict()
+        log_dict["accuracy"] = sum(accuracies) / float(len(accuracies))
+        logger.log(log_dict)
+
+
 def create_barplot(accs: dict, title: str, savepath: str):
     y = list(accs.values())
     x = np.arange(len(y))
@@ -251,11 +286,17 @@ if __name__ == "__main__":
 
     def _get_transform(input_size: int, dataset_name: str):
         _means = {
+            "cifar10": [0.49139968, 0.48215841, 0.44653091],
+            "cifar100": [0.50707516, 0.48654887, 0.44091784],
+            "imagenet": [0.485, 0.456, 0.406],
             "cifar10-c": [0.49139968, 0.48215841, 0.44653091],
             "cifar100-c": [0.50707516, 0.48654887, 0.44091784],
             "imagenet-c": [0.485, 0.456, 0.406],
         }
         _stds = {
+            "cifar10": [0.24703223, 0.24348513, 0.26158784],
+            "cifar100": [0.26733429, 0.25643846, 0.27615047],
+            "imagenet": [0.229, 0.224, 0.225],
             "cifar10-c": [0.24703223, 0.24348513, 0.26158784],
             "cifar100-c": [0.26733429, 0.25643846, 0.27615047],
             "imagenet-c": [0.229, 0.224, 0.225],
@@ -287,6 +328,24 @@ if __name__ == "__main__":
         )
 
         return torchvision.transforms.Compose(transform)
+
+    def _get_dataset_builder(dataset_name: str):
+        _built_in_datasets = set(["cifar10", "cifar100"])
+        import functools
+
+        if dataset_name in _built_in_datasets:
+            if dataset_name == "cifar10":
+                func = torchvision.datasets.CIFAR10
+            elif dataset_name == "cifar100":
+                func = torchvision.datasets.CIFAR100
+            else:
+                raise NotImplementedError
+
+            func = functools.partial(func, train=False, download=True)
+        else:
+            func = torchvision.datasets.ImageFolder
+
+        return func
 
     _corruptions = [
         "gaussian_noise",
@@ -371,4 +430,7 @@ if __name__ == "__main__":
             "cuda",
         )
     else:
-        raise NotImplementedError
+        func = _get_dataset_builder(opt.dataset)
+        dataset = func(root=opt.dataset_dir, transform=transform)
+
+        evaluate(model, dataset, opt.log_dir, opt.batch_size, "cuda")
