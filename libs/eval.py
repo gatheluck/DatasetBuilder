@@ -106,7 +106,7 @@ def evaluate_imagenet_c(
         for i, corruption_type in enumerate(corruptions):
             accuracies = list()
 
-            for j in range(0, 6):  # imagenet-c dataset is separated to 5 small sets.
+            for j in range(1, 6):  # imagenet-c dataset is separated to 5 small sets.
                 datasetpath = os.path.join(dataset_dir, corruption_type, str(j))
                 dataset = torchvision.datasets.ImageFolder(datasetpath, transform)
                 loader = torch.utils.data.DataLoader(
@@ -260,18 +260,55 @@ if __name__ == "__main__":
             "cifar100-c": [0.26733429, 0.25643846, 0.27615047],
             "imagenet-c": [0.229, 0.224, 0.225],
         }
+        _supported_input_sizes = set([32, 224])
+        assert input_size in _supported_input_sizes
 
         mean, std = _means[dataset_name], _stds[dataset_name]
 
-        transform = [
-            torchvision.transforms.Resize(input_size),
-            torchvision.transforms.ToTensor(),
-            torchvision.transforms.Normalize(mean=mean, std=std),
-        ]
+        transform = list()
+
+        if input_size == 32:
+            transform.extend([torchvision.transforms.Resize(input_size)])
+        elif input_size == 224:
+            transform.extend(
+                [
+                    torchvision.transforms.Resize(256),
+                    torchvision.transforms.CenterCrop(input_size),
+                ]
+            )
+        else:
+            raise NotImplementedError
+
+        transform.extend(
+            [
+                torchvision.transforms.ToTensor(),
+                torchvision.transforms.Normalize(mean=mean, std=std),
+            ]
+        )
 
         return torchvision.transforms.Compose(transform)
 
-    _corruptions = "gaussian_noise shot_noise speckle_noise impulse_noise defocus_blur gaussian_blur motion_blur zoom_blur snow fog brightness contrast elastic_transform pixelate jpeg_compression spatter saturate frost".split()
+    _corruptions = [
+        "gaussian_noise",
+        "shot_noise",
+        "speckle_noise",
+        "impulse_noise",
+        "defocus_blur",
+        "gaussian_blur",
+        "glass_blur",
+        "motion_blur",
+        "zoom_blur",
+        "snow",
+        "fog",
+        "brightness",
+        "contrast",
+        "elastic_transform",
+        "pixelate",
+        "jpeg_compression",
+        "spatter",
+        "saturate",
+        "frost",
+    ]
 
     # parse argument
     import argparse
@@ -325,7 +362,11 @@ if __name__ == "__main__":
             transform,
             opt.dataset_dir,
             opt.log_dir,
-            _corruptions,
+            [
+                c
+                for c in _corruptions
+                if c not in ["speckle_noise", "spatter", "saturate", "gaussian_blur"]
+            ],
             opt.batch_size,
             "cuda",
         )
